@@ -2391,32 +2391,59 @@ void s_output_tree(FILE* fp, TNODE* node, TSR_RESULT* result){
     }
 }
 
-void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int pid )
-{
-    PAT_SECT_HEADER *pat = NULL;
-    int    section_length, npmt, i;
-    u8     *p;
-    static int pmt_list[10] = { 0 };
-    static int first = 1;
+typedef struct {
+    u8 stream_type;
+    u16 es_pid;
+} es_t;
 
-    if ( !result ) {
+typedef struct {
+    es_t es_list[16];
+    int index;
+} es_info_t;
+
+static es_info_t g_es_info;
+
+
+void save_es_info( u8 stream_type, u16 es_pid );
+{
+    g_es_info.es_list[g_es_info.index].stream_type = stream_type;
+    g_es_info.es_list[g_es_info.index++].es_pid = es_pid;
+}
+
+u8 get_stream_type( u16 pid )
+{
+    int i = 0;
+
+    for ( i=0; i<g_es_info.index; i++ ) {
+        if ( g_es_info.es_list[i].es_pid == pid ) {
+            return g_es_info.es_list[i].stream_type;
+        }
+    }
+
+    return -1;
+}
+
+void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int adaptation_field_control, u16 pid, u8 *data )
+{
+    char *audio_ptr = (char *)malloc(65535), *video_ptr = (char *)malloc(65535);
+    u8 stream_type = 0;
+
+    if ( !result  || !data || !audio_ptr || !video_ptr ) {
         LOGI("check pointer error\n");
         return;
     }
 
-    if ( first ) {
-        p = (u8*)(result->tbl_pat->sections[0].data);
-        pat = (PAT_SECT_HEADER *)(result->tbl_pat->sections[0].data);
-        section_length = pat->section_length_hi * 256 + pat->section_length_lo;
-        LOGI("section_length= %d\n");
-        npmt = (section_length - 5 - CRC_32_SIZE) / 4; /* each program uses 4 bytes */
-        LOGI("npmt = %d\n", npmt );
-        for(i = 0; i < npmt; i ++, p += 4){
-            pmt_list[i] = (p[2] & 0x1f) << 8 | p[3];
-            LOGI("pmt %d pid : 0x%04x\n", i, pmt_list[i] );
+    stream_type = get_stream_type( pid );
+    if ( stream_type != 0xff ) {
+        if ( adaptation_field_control == 2 ) {
+            printf("check adaptation_field_control error\n");
+            exit( 1 );
         }
     } else {
+        printf("get stream_type error\n");
+        exit( 1 );
     }
+
 }
 
 

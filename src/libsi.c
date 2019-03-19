@@ -1646,6 +1646,9 @@ static void s_parse_sect_cat(TNODE* sect_root, TABLE *tbl_cat, int index){
 }
 
 
+// add by felix
+extern void save_es_info( u8 stream_type, u16 es_pid );
+
 static void s_parse_sect_pmt(TNODE* sect_root, TABLE *tbl_pmt, int index, PID_LIST* pid_list){
     
     char   txt[TXT_BUF_SIZE + 1];
@@ -1743,6 +1746,8 @@ static void s_parse_sect_pmt(TNODE* sect_root, TABLE *tbl_pmt, int index, PID_LI
         u16        es_pid = (p[1] & 0x1f) * 256 + p[2];
         PID_NODE*  pid_node;
         TNODE      *n2, *n3;
+
+        save_es_info( stream_type, es_pid );
         for(pid_node = pid_list->head; pid_node != 0; pid_node = pid_node->next){
             if(pid_node->pid == es_pid){
                 pid_node->stream_type = stream_type;
