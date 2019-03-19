@@ -29,6 +29,7 @@
 #include <string.h>
 #include <time.h>
 #include "save_html.h"
+#include "si.h"
 
 void s_output_tree(FILE* fp, TNODE* node, TSR_RESULT* result);
 void s_output_packet(TSR_RESULT* result, TNODE* node);
@@ -2387,6 +2388,34 @@ void s_output_tree(FILE* fp, TNODE* node, TSR_RESULT* result){
             fprintf(fp, "N%08x.add_kid(N%08x);\n", (u32)node, (u32)kid);
             kid = kid->sib;
         }
+    }
+}
+
+void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int pid )
+{
+    PAT_SECT_HEADER *pat = NULL;
+    int    section_length, npmt, i;
+    u8     *p;
+    static int pmt_list[10] = { 0 };
+    static int first = 1;
+
+    if ( !result ) {
+        LOGI("check pointer error\n");
+        return;
+    }
+
+    if ( first ) {
+        p = (u8*)(result->tbl_pat->sections[0].data);
+        pat = (PAT_SECT_HEADER *)(result->tbl_pat->sections[0].data);
+        section_length = pat->section_length_hi * 256 + pat->section_length_lo;
+        LOGI("section_length= %d\n");
+        npmt = (section_length - 5 - CRC_32_SIZE) / 4; /* each program uses 4 bytes */
+        LOGI("npmt = %d\n", npmt );
+        for(i = 0; i < npmt; i ++, p += 4){
+            pmt_list[i] = (p[2] & 0x1f) << 8 | p[3];
+            LOGI("pmt %d pid : 0x%04x\n", i, pmt_list[i] );
+        }
+    } else {
     }
 }
 

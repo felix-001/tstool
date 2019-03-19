@@ -20,7 +20,8 @@
 #include <config.h>
 #endif
 
-#include <malloc.h>
+//#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
