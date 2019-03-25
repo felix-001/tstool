@@ -36,26 +36,22 @@ PATH: /bin
 PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
-PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
-PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
-PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
 PATH: /home/work/cmake-3.9.1-Linux-x86_64/bin
 PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
 PATH: /home/work/cmake-3.9.1-Linux-x86_64/bin
+PATH: /home/work/toolchains/arm-hisiv500-linux/bin
 PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
 PATH: /home/work/cmake-3.9.1-Linux-x86_64/bin
+PATH: /home/work/toolchains/arm-hisiv500-linux/bin
 PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
 PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
 PATH: /home/work/cmake-3.9.1-Linux-x86_64/bin
-PATH: /home/work/toolchains/arm-linux-gnueabihf-4.8.3-201404/bin
-PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/bin/
-PATH: /opt/hisi-linux/x86-arm/arm-hisiv300-linux/target/bin
-PATH: /home/work/cmake-3.9.1-Linux-x86_64/bin
+PATH: /home/work/toolchains/arm-hisiv500-linux/bin
 
 
 ## ----------- ##
@@ -144,7 +140,7 @@ configure:2244: test -s conftest.o
 configure:2247: $? = 0
 configure:2258: result: yes
 configure:2275: checking for gcc option to accept ANSI C
-configure:2345: gcc  -c -g -O2  conftest.c >&5
+configure:2345: gcc  -c   conftest.c >&5
 configure:2351: $? = 0
 configure:2355: test -z 
 			 || test ! -s conftest.err
@@ -152,7 +148,7 @@ configure:2358: $? = 0
 configure:2361: test -s conftest.o
 configure:2364: $? = 0
 configure:2382: result: none needed
-configure:2400: gcc -c -g -O2  conftest.c >&5
+configure:2400: gcc -c   conftest.c >&5
 conftest.c:2:3: error: unknown type name 'choke'
    choke me
    ^
@@ -163,14 +159,14 @@ configure: failed program was:
 |   choke me
 | #endif
 configure:2540: checking whether byte ordering is bigendian
-configure:2567: gcc -c -g -O2  conftest.c >&5
+configure:2567: gcc -c   conftest.c >&5
 configure:2573: $? = 0
 configure:2577: test -z 
 			 || test ! -s conftest.err
 configure:2580: $? = 0
 configure:2583: test -s conftest.o
 configure:2586: $? = 0
-configure:2610: gcc -c -g -O2  conftest.c >&5
+configure:2610: gcc -c   conftest.c >&5
 conftest.c: In function 'main':
 conftest.c:18:2: error: unknown type name 'not'
   not big endian
@@ -234,7 +230,7 @@ configure:3167: checking whether gcc accepts -g
 configure:3218: result: yes
 configure:3235: checking for gcc option to accept ANSI C
 configure:3342: result: none needed
-configure:3360: gcc -c -g -O2  conftest.c >&5
+configure:3360: gcc -c   conftest.c >&5
 conftest.c:2:3: error: unknown type name 'choke'
    choke me
    ^
@@ -285,14 +281,14 @@ configure: failed program was:
 configure:3734: checking for egrep
 configure:3744: result: grep -E
 configure:3749: checking for ANSI C header files
-configure:3774: gcc -c -g -O2  conftest.c >&5
+configure:3774: gcc -c   conftest.c >&5
 configure:3780: $? = 0
 configure:3784: test -z 
 			 || test ! -s conftest.err
 configure:3787: $? = 0
 configure:3790: test -s conftest.o
 configure:3793: $? = 0
-configure:3882: gcc -o conftest -g -O2   conftest.c  >&5
+configure:3882: gcc -o conftest    conftest.c  >&5
 conftest.c: In function 'main':
 conftest.c:28:7: warning: implicit declaration of function 'exit' [-Wimplicit-function-declaration]
        exit(2);
@@ -344,7 +340,7 @@ ac_cv_c_bigendian=no
 ac_cv_c_compiler_gnu=yes
 ac_cv_env_CC_set=
 ac_cv_env_CC_value=
-ac_cv_env_CFLAGS_set=
+ac_cv_env_CFLAGS_set=set
 ac_cv_env_CFLAGS_value=
 ac_cv_env_CPPFLAGS_set=
 ac_cv_env_CPPFLAGS_value=
@@ -381,7 +377,7 @@ AUTOCONF='autoconf'
 AUTOHEADER='autoheader'
 AUTOMAKE='/home/work/vod/tstool/missing automake-1.4'
 CC='gcc'
-CFLAGS='-g -O2'
+CFLAGS=''
 CPP='gcc -E'
 CPPFLAGS=''
 DEFS='-DHAVE_CONFIG_H'

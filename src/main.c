@@ -786,6 +786,7 @@ static void show_help(void){
 
 	fprintf(stderr, 
 "Options:\n"
+"  v01.00.00"
 "  -h, --help       print this help, then exit\n"
 "  -V, --version    print version info, then exit\n"
 "  -v, --verbose    verbosely report processing\n"

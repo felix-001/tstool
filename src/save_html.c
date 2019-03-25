@@ -28,8 +28,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 #include "save_html.h"
 #include "si.h"
+#include "dump.h"
 
 void s_output_tree(FILE* fp, TNODE* node, TSR_RESULT* result);
 void s_output_packet(TSR_RESULT* result, TNODE* node);
@@ -2404,8 +2406,9 @@ typedef struct {
 static es_info_t g_es_info;
 
 
-void save_es_info( u8 stream_type, u16 es_pid );
+void save_es_info( u8 stream_type, u16 es_pid )
 {
+    LOGI("stream_type = 0x%x, es_pid = 0x%x\n", stream_type, es_pid );
     g_es_info.es_list[g_es_info.index].stream_type = stream_type;
     g_es_info.es_list[g_es_info.index++].es_pid = es_pid;
 }
@@ -2414,6 +2417,7 @@ u8 get_stream_type( u16 pid )
 {
     int i = 0;
 
+    LOGI("pid = 0x%x\n", pid );
     for ( i=0; i<g_es_info.index; i++ ) {
         if ( g_es_info.es_list[i].es_pid == pid ) {
             return g_es_info.es_list[i].stream_type;
@@ -2423,27 +2427,126 @@ u8 get_stream_type( u16 pid )
     return -1;
 }
 
+static inline int64_t ff_parse_pes_pts(const uint8_t *buf) {
+    return (int64_t)(*buf & 0x0e) << 29 |
+            (AV_RB16(buf+1) >> 1) << 15 |
+             AV_RB16(buf+3) >> 1;
+}
+
+
+// data not contain header 4bytes
 void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int adaptation_field_control, u16 pid, u8 *data )
 {
-    char *audio_ptr = (char *)malloc(65535), *video_ptr = (char *)malloc(65535);
+    unsigned char *audio_ptr = (char *)malloc(65535), *video_ptr = (char *)malloc(65535);
     u8 stream_type = 0;
+    u8 *save = data;
+    unsigned char *video_ptr_save = video_ptr;
+    unsigned char *audio_ptr_save = audio_ptr;
+    int64_t timestamp = 0;
+    u8 iskey = 0;
+    static int i =0;
+    unsigned short pes_packet_len = 0;
+    u8 pes_header_data_len = 0;
+    int es_data_len = 0;
+    u8 PTS_DTS_flag = 0;
+
+    if ( pid == 0 ) {
+        LOGI("get the PAT\n");
+        return;
+    }
+
+    if ( pid == 0x1000 ) {
+        LOGI("get the PMT\n");
+        return;
+    }
 
     if ( !result  || !data || !audio_ptr || !video_ptr ) {
         LOGI("check pointer error\n");
         return;
     }
 
+    memset( video_ptr, 0, 65535 );
+    memset( audio_ptr, 0, 65535 );
+
+    LOGI("payload_unit_start_indicator = %d\n", payload_unit_start_indicator );
+    if ( payload_unit_start_indicator ) {
+        if ( video_ptr > video_ptr_save && timestamp ) {
+            if ( timestamp ) {
+                LOGI("push video %02d\n", i++ );
+                PushAVData( video_ptr_save, video_ptr - video_ptr_save, 1, ( int )timestamp, 0, iskey );
+                video_ptr = video_ptr_save;
+                iskey = 0;
+            } else {
+                LOGE("check timestamp error\n");
+                exit(1);
+            }
+        } 
+        if ( audio_ptr > audio_ptr_save ) {
+            if ( timestamp ) {
+                PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, ( int )timestamp, 0, 0 );
+                audio_ptr = audio_ptr_save;
+            } else {
+                LOGE("check timestamp error\n");
+                exit(1);
+            }
+        } 
+    }
+
     stream_type = get_stream_type( pid );
-    if ( stream_type != 0xff ) {
+    LOGI("stream_type = 0x%x\n", stream_type );
+    LOGI("adaptation_field_control = %d\n", adaptation_field_control );
+    if ( stream_type == 0x1b  || stream_type == 0x0f ) {
         if ( adaptation_field_control == 2 ) {
             printf("check adaptation_field_control error\n");
             exit( 1 );
+        } else if ( adaptation_field_control == 3 ) {// adaption field followed by payload
+            u8 adap_len = *data++;
+
+            LOGI("adap_len = %d\n", adap_len );
+            data += adap_len;
+        } 
+        data += 4;// pes fix header
+        pes_packet_len = (data[0]<<8) | data[1];
+        LOGI("pes_packet_len = %d\n", pes_packet_len );
+        if ( payload_unit_start_indicator ) {// optional pes header
+            data += 2;
+            LOGI("*data = 0x%x\n", *data );
+            PTS_DTS_flag = (*data >> 6) & 0x03;
+            data+=2;// 7flags
+            LOGI("PTS_DTS_flag = %d\n", PTS_DTS_flag );
+            pes_header_data_len = *data++;
+            LOGI("pes_header_data_len = %d\n", pes_header_data_len );
+            timestamp = ff_parse_pes_pts( data );
+            LOGI("timestamp = %ld\n", timestamp );
+            data += pes_header_data_len;
+        } 
+
+        if ( stream_type == 0x0f ) {
+            memcpy( audio_ptr, data, es_data_len );
+            audio_ptr += es_data_len;
+        } else {
+            if ( payload_unit_start_indicator
+                 && (data[0] != 0x00
+                 || data[1] != 0x00
+                 || data[2] != 0x00
+                 || data[3] != 0x01) ) {
+                LOGE("check start code error\n");
+                exit(1);
+            }
+            es_data_len = 188 - (data-save);
+            u8 nalu_type = data[4]&0x1F;
+            LOGI("nalu_type = %d\n", nalu_type );
+            if ( nalu_type == 0x05 ) {
+                iskey = 1;
+            }
+            LOGI("es_data_len = %d\n", es_data_len );
+            memcpy( video_ptr, data, es_data_len );
+            video_ptr += es_data_len;
         }
     } else {
-        printf("get stream_type error\n");
+        LOGE("get stream_type error\n");
         exit( 1 );
     }
-
 }
 
 
@@ -2484,6 +2587,11 @@ void s_output_packet(TSR_RESULT* result, TNODE* node){
 
 	/* packet hex */
 
+    packet_handle( result,
+                   packet_payload_unit_start_indicator(pHeader),
+                   packet_adaptation_field_control(pHeader),
+                   packet_pid(pHeader),
+                   (u8 *)pHeader + 4 );
 	nRows = (result->packet_size - 1) / nBytePerLine + 1;
 
 	p = (u8*)pHeader;
