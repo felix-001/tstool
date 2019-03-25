@@ -2437,12 +2437,12 @@ static inline int64_t ff_parse_pes_pts(const uint8_t *buf) {
 // data not contain header 4bytes
 void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int adaptation_field_control, u16 pid, u8 *data )
 {
-    unsigned char *audio_ptr = (char *)malloc(65535), *video_ptr = (char *)malloc(65535);
+    static unsigned char *audio_ptr = NULL, *video_ptr = NULL;
     u8 stream_type = 0;
     u8 *save = data;
-    unsigned char *video_ptr_save = video_ptr;
-    unsigned char *audio_ptr_save = audio_ptr;
-    int64_t timestamp = 0;
+    static unsigned char *video_ptr_save = NULL;
+    static unsigned char *audio_ptr_save = NULL;
+    static int64_t timestamp = 0;
     u8 iskey = 0;
     static int i =0;
     unsigned short pes_packet_len = 0;
@@ -2460,22 +2460,39 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
         return;
     }
 
+    if ( !audio_ptr ) {
+        audio_ptr = (char *)malloc( 65536 );
+        memset( audio_ptr, 0, 65535 );
+    }
+
+    if ( !video_ptr ) {
+        video_ptr = (char *)malloc( 65536 );
+        memset( video_ptr, 0, 65535 );
+    }
+
     if ( !result  || !data || !audio_ptr || !video_ptr ) {
         LOGI("check pointer error\n");
         return;
     }
 
-    memset( video_ptr, 0, 65535 );
-    memset( audio_ptr, 0, 65535 );
+    if ( !video_ptr_save ) {
+        video_ptr_save = video_ptr;
+    }
+
+    if ( !audio_ptr_save ) {
+        audio_ptr_save = audio_ptr;
+    }
+
 
     LOGI("payload_unit_start_indicator = %d\n", payload_unit_start_indicator );
     if ( payload_unit_start_indicator ) {
-        if ( video_ptr > video_ptr_save && timestamp ) {
+        if ( video_ptr > video_ptr_save  ) {
             if ( timestamp ) {
                 LOGI("push video %02d\n", i++ );
-                PushAVData( video_ptr_save, video_ptr - video_ptr_save, 1, ( int )timestamp, 0, iskey );
+                PushAVData( video_ptr_save, video_ptr - video_ptr_save, 1, timestamp, 0, iskey );
                 video_ptr = video_ptr_save;
                 iskey = 0;
+                timestamp = 0;
             } else {
                 LOGE("check timestamp error\n");
                 exit(1);
@@ -2483,7 +2500,7 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
         } 
         if ( audio_ptr > audio_ptr_save ) {
             if ( timestamp ) {
-                PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, ( int )timestamp, 0, 0 );
+                PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, timestamp, 0, 0 );
                 audio_ptr = audio_ptr_save;
             } else {
                 LOGE("check timestamp error\n");
@@ -2539,7 +2556,7 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
             if ( nalu_type == 0x05 ) {
                 iskey = 1;
             }
-            LOGI("es_data_len = %d\n", es_data_len );
+            LOGI("es_data_len = %d\n\n", es_data_len );
             memcpy( video_ptr, data, es_data_len );
             video_ptr += es_data_len;
         }

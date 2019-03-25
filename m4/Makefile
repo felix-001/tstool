@@ -52,9 +52,9 @@ pkgincludedir = $(includedir)/tstool
 
 top_builddir = ..
 
-ACLOCAL = /home/work/vod/tstool/missing aclocal-1.4
+ACLOCAL = /home/streaming-media/hls/ts/tstool-0.1.09/missing aclocal-1.4
 AUTOCONF = autoconf
-AUTOMAKE = /home/work/vod/tstool/missing automake-1.4
+AUTOMAKE = /home/streaming-media/hls/ts/tstool-0.1.09/missing automake-1.4
 AUTOHEADER = autoheader
 
 INSTALL = /usr/bin/install -c
@@ -72,7 +72,7 @@ POST_UNINSTALL = :
 host_alias = 
 host_triplet = x86_64-unknown-linux-gnu
 CC = gcc
-MAKEINFO = /home/work/vod/tstool/missing makeinfo
+MAKEINFO = /home/streaming-media/hls/ts/tstool-0.1.09/missing makeinfo
 PACKAGE = tstool
 RANLIB = ranlib
 VERSION = 0.1.09

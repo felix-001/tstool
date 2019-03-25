@@ -60,7 +60,7 @@
     ((((const uint8_t*)(x))[0] << 8) |         \
      (((const uint8_t*)(x))[1] ))
 
-void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, int composition_time, char iskey  );
+void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestamp, int composition_time, char iskey  );
 void PushFinish();
 void DbgDumpBuf( int line, const char *func, unsigned char *buf, int size );
 void DumpNalUnit( uint8_t *data, int datasize );

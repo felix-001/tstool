@@ -1,4 +1,4 @@
-// Last Update:2019-03-25 18:36:34
+// Last Update:2019-03-25 23:27:26
 /**
  * @file dump.c
  * @brief 
@@ -115,7 +115,7 @@ void H264ConfigHandle( unsigned char *in, unsigned char *out, int *size )
     *size = dst-out;
 }
 
-void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, int composition_time, char iskey  )
+void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestamp, int composition_time, char iskey  )
 {
 
     char startcode[] = { 0x00, 0x00, 0x00, 0x01 };
@@ -127,10 +127,12 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, i
     int size = 0;
 
     if ( !fp ) {
-        fp = fopen( "./flv-dump.data", "w+" );
+        fp = fopen( "/home/streaming-media/hls/ts/tstool-0.1.09/flv-dump.data", "w+" );
         if ( !fp ) {
             LOGE("open file error\n");
             return;
+        } else {
+            LOGI("open file success\n");
         }
     }
 
@@ -138,7 +140,7 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, i
 
     DUMPBUF( buf, 32 );
     DUMPBUF( buf+buf_size-32, 32 );
-    LOGI("buf_size = %d, isvideo = %d, timestamp = %d, iskey = %d\n", buf_size, isvideo, timestamp, iskey  );
+    LOGI("buf_size = %d, isvideo = %d, timestamp = %ld, iskey = %d\n", buf_size, isvideo, timestamp, iskey  );
     if ( iskey && config_written ) {
         H264ConfigHandle( buf, sps_pps, &size );
     }
@@ -154,15 +156,11 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, i
     if ( isvideo ) {
         if ( !config_written)
             size = buf_size;
-    //    if ( !config_written)
-    //        size = buf_size + 4;// startcode
     } else {
         size = buf_size + 7;// adts header
     }
     fwrite( (char *)&size, 1, 4, fp );
     if ( isvideo ) {
-//        if ( !config_written )
-//            fwrite( startcode, 1, 4, fp );
     } else {
         /* adts */
         unsigned char adts[7] = { 0 };
@@ -176,36 +174,6 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int timestamp, i
         config_written = 0;
         return;
     } else {
-        if ( isvideo ) {
-            DUMPBUF( buf, 4 );
-            len = buf[0]<<24 | buf[1] << 16 | buf[2] << 8 | buf[3];
-            LOGI("len = %d : 0x%x\n", len, len );
-            if ( len < 0 ) {
-                LOGE("check len error\n");
-                exit(1);
-            }
-            /* process startcode */
-//            if ( len != buf_size - 4 && len < buf_size ) {
-                while( pbuf < pend ) {
-                    *pbuf++ = 0x00;
-                    *pbuf++ = 0x00;
-                    *pbuf++ = 0x00;
-                    *pbuf++ = 0x01;
-                    pbuf += len;
-                    if ( pbuf >= pend ) {
-                        LOGI("eof, parse nalu finished\n");
-                        break;
-                    }
-                    len = pbuf[0]<<24 | pbuf[1] << 16 | pbuf[2] << 8 | pbuf[3];
-                    LOGI("len = %d\n", len );
-                    if ( len < 0 ) {
-                        LOGE("check len error\n");
-                        exit(1);
-                    }
-                }
-//            }
-        }
-
     }
 
     fwrite( buf, 1, buf_size, fp );
