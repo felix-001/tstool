@@ -1,4 +1,4 @@
-// Last Update:2019-03-26 20:53:49
+// Last Update:2019-03-27 05:17:13
 /**
  * @file ts_parse.h
  * @brief 
@@ -21,6 +21,40 @@ typedef struct{
     u8 transport_private_data_flag          :1;
     u8 adaption_file_extension_flag         :1;
 } adp_field_t;
+
+typedef struct {
+#ifdef WORDS_BIGENDIAN
+    u8                                      :2;
+    u8 PES_scrambling_control               :2;
+    u8 PES_priority                         :1;
+    u8 data_alignment_indicator             :1;
+    u8 copyright                            :1;
+    u8 original_or_copy                     :1;
+    u8 PTS_DTS_flag                         :2;
+    u8 ESCR_flag                            :1;
+    u8 ES_rate_flag                         :1;
+    u8 DSM_trick_mode_flag                  :1;
+    u8 additional_copyright_info_flag       :1;
+    u8 PES_crc_flag                         :1;
+    u8 PES_extension_flag                   :1;
+    u8 PES_header_data_length               :8;
+#else
+    u8 PES_scrambling_control               :2;
+    u8 PES_priority                         :1;
+    u8 data_alignment_indicator             :1;
+    u8 copyright                            :1;
+    u8 original_or_copy                     :1;
+    u8                                      :2;
+    u8 ESCR_flag                            :1;
+    u8 ES_rate_flag                         :1;
+    u8 DSM_trick_mode_flag                  :1;
+    u8 additional_copyright_info_flag       :1;
+    u8 PES_crc_flag                         :1;
+    u8 PES_extension_flag                   :1;
+    u8 PTS_DTS_flag                         :2;
+    u8 PES_header_data_length               :8;
+#endif
+} optional_pes_header_t;
 
 typedef struct {
     u16 pmt_pid;
