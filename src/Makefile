@@ -76,7 +76,7 @@ RANLIB = ranlib
 VERSION = 0.1.09
 
 bin_PROGRAMS = tstool
-tstool_SOURCES = main.c libsi.c save_html.c si.c tree.c dump.c dump.h put_bits.h 13818-1.h libsi.h save_html.h si.h tree.h
+tstool_SOURCES = main.c libsi.c save_html.c si.c tree.c dump.c ts_parse.c ts_parse.h dump.h put_bits.h 13818-1.h libsi.h save_html.h si.h tree.h
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
@@ -87,7 +87,7 @@ DEFS = -DHAVE_CONFIG_H -I. -I$(srcdir) -I..
 CPPFLAGS = 
 LDFLAGS = 
 LIBS = 
-tstool_OBJECTS =  main.o libsi.o save_html.o si.o tree.o dump.o
+tstool_OBJECTS =  main.o libsi.o save_html.o si.o tree.o dump.o ts_parse.o
 tstool_LDADD = $(LDADD)
 tstool_DEPENDENCIES = 
 tstool_LDFLAGS = 

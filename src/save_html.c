@@ -2445,10 +2445,12 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
     static int64_t timestamp = 0;
     u8 iskey = 0;
     static int i =0;
-    unsigned short pes_packet_len = 0;
+    static unsigned short pes_packet_len = 0;
     u8 pes_header_data_len = 0;
     int es_data_len = 0;
     u8 PTS_DTS_flag = 0;
+    static int header_len = 0;
+    static int pkt_cnt = 0;
 
     if ( pid == 0 ) {
         LOGI("get the PAT\n");
@@ -2484,24 +2486,38 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
     }
 
 
+    stream_type = get_stream_type( pid );
+    LOGI("stream_type = 0x%x\n", stream_type );
     LOGI("payload_unit_start_indicator = %d\n", payload_unit_start_indicator );
     if ( payload_unit_start_indicator ) {
-        if ( video_ptr > video_ptr_save  ) {
+        if ( (stream_type == 0x1b) && (video_ptr > video_ptr_save)  ) {
             if ( timestamp ) {
+                if ( (pes_packet_len - header_len) != (video_ptr - video_ptr_save)) {
+                    LOGE("check packet length, pes_packet_len - header_len = %d, video_ptr - video_ptr_save = %d\n",
+                         pes_packet_len - header_len, video_ptr - video_ptr_save);
+                    exit(1);
+                }
                 LOGI("push video %02d\n", i++ );
                 PushAVData( video_ptr_save, video_ptr - video_ptr_save, 1, timestamp, 0, iskey );
                 video_ptr = video_ptr_save;
                 iskey = 0;
                 timestamp = 0;
+                header_len = 0;
             } else {
                 LOGE("check timestamp error\n");
                 exit(1);
             }
         } 
-        if ( audio_ptr > audio_ptr_save ) {
+        if ( (stream_type == 0x0f ) && (audio_ptr > audio_ptr_save) ) {
             if ( timestamp ) {
+                if ( (pes_packet_len - header_len) != (audio_ptr - audio_ptr_save)) {
+                    LOGE("check packet length, pes_packet_len - header_len = %d, audio_ptr - audio_ptr_save = %d\n",
+                         pes_packet_len - header_len, audio_ptr - audio_ptr_save);
+                    exit(1);
+                }
                 PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, timestamp, 0, 0 );
                 audio_ptr = audio_ptr_save;
+                header_len = 0;
             } else {
                 LOGE("check timestamp error\n");
                 exit(1);
@@ -2509,8 +2525,6 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
         } 
     }
 
-    stream_type = get_stream_type( pid );
-    LOGI("stream_type = 0x%x\n", stream_type );
     LOGI("adaptation_field_control = %d\n", adaptation_field_control );
     if ( stream_type == 0x1b  || stream_type == 0x0f ) {
         if ( adaptation_field_control == 2 ) {
@@ -2522,10 +2536,10 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
             LOGI("adap_len = %d\n", adap_len );
             data += adap_len;
         } 
-        data += 4;// pes fix header
-        pes_packet_len = (data[0]<<8) | data[1];
-        LOGI("pes_packet_len = %d\n", pes_packet_len );
         if ( payload_unit_start_indicator ) {// optional pes header
+            data += 4;// pes fix header
+            pes_packet_len = (data[0]<<8) | data[1];
+            LOGI("pes_packet_len = %d\n", pes_packet_len );
             data += 2;
             LOGI("*data = 0x%x\n", *data );
             PTS_DTS_flag = (*data >> 6) & 0x03;
@@ -2540,7 +2554,11 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
 
         if ( stream_type == 0x0f ) {
             memcpy( audio_ptr, data, es_data_len );
+            es_data_len = 184 - (data-save);
+            LOGI("es_data_len = %d\n\n", es_data_len );
             audio_ptr += es_data_len;
+            if ( payload_unit_start_indicator )
+                header_len = data - save;
         } else {
             if ( payload_unit_start_indicator
                  && (data[0] != 0x00
@@ -2550,7 +2568,9 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
                 LOGE("check start code error\n");
                 exit(1);
             }
-            es_data_len = 188 - (data-save);
+            es_data_len = 184 - (data-save);
+            if ( payload_unit_start_indicator )
+                header_len = data - save;
             u8 nalu_type = data[4]&0x1F;
             LOGI("nalu_type = %d\n", nalu_type );
             if ( nalu_type == 0x05 ) {
@@ -2559,6 +2579,7 @@ void packet_handle( TSR_RESULT *result, int payload_unit_start_indicator, int ad
             LOGI("es_data_len = %d\n\n", es_data_len );
             memcpy( video_ptr, data, es_data_len );
             video_ptr += es_data_len;
+            LOGI("pkt_cnt = %d\n", pkt_cnt++ );
         }
     } else {
         LOGE("get stream_type error\n");
@@ -2604,11 +2625,13 @@ void s_output_packet(TSR_RESULT* result, TNODE* node){
 
 	/* packet hex */
 
+#if 0
     packet_handle( result,
                    packet_payload_unit_start_indicator(pHeader),
                    packet_adaptation_field_control(pHeader),
                    packet_pid(pHeader),
                    (u8 *)pHeader + 4 );
+#endif
 	nRows = (result->packet_size - 1) / nBytePerLine + 1;
 
 	p = (u8*)pHeader;

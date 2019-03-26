@@ -1,4 +1,4 @@
-// Last Update:2019-03-25 23:27:26
+// Last Update:2019-03-26 09:33:41
 /**
  * @file dump.c
  * @brief 
@@ -125,9 +125,19 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestam
     static int config_written = 1;
     unsigned char sps_pps[128] = { 0 };
     int size = 0;
+    char *pwd = getenv("PWD");
+    char filename[128] = { 0 };
+
+    if ( !pwd ) {
+        LOGE("get pwd env error\n");
+        return;
+    }
+
+    sprintf( filename, "%s/av-dump.data", pwd);
 
     if ( !fp ) {
-        fp = fopen( "/home/streaming-media/hls/ts/tstool-0.1.09/flv-dump.data", "w+" );
+        LOGI("filename = %s\n", filename );
+        fp = fopen( filename, "w+" );
         if ( !fp ) {
             LOGE("open file error\n");
             return;
@@ -160,14 +170,6 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestam
         size = buf_size + 7;// adts header
     }
     fwrite( (char *)&size, 1, 4, fp );
-    if ( isvideo ) {
-    } else {
-        /* adts */
-        unsigned char adts[7] = { 0 };
-
-        AddAdts( adts, buf_size );
-        fwrite( adts, 1, 7, fp );
-    }
 
     if ( iskey && config_written ) {
         fwrite( sps_pps, 1, size, fp );

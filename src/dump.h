@@ -18,6 +18,8 @@
 #ifndef FLV_DUMP_H
 #define FLV_DUMP_H
 
+#include <stdint.h>
+
 #define RED                  "\e[0;31m"
 #define NONE                 "\e[0m"
 #define GREEN                "\e[0;32m"

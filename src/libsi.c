@@ -497,12 +497,11 @@ TSR_RESULT* build_tsr_result(const char* file_path, u8* file_data, u32 file_size
 
     result->packet_size = offset_and_size % 256;
     result->ts_data += offset_and_size / 256;
+    // paket_nr - 一个ts文件总共多少个packet
     result->packet_nr = (result->ts_size - offset_and_size / 256) / result->packet_size;
 
-	if(s_is_verbose){
-		fprintf(stdout, "checking packet size...\n\tpacket size is %d\n\ttotally %d packets%s\n", result->packet_size, result->packet_nr, (offset_and_size / 256)? "\n\tone broken packet at head discarded" : "");
-		fflush(stdout);
-	}
+    fprintf(stdout, "checking packet size...\n\tpacket size is %d\n\ttotally %d packets%s\n", result->packet_size, result->packet_nr, (offset_and_size / 256)? "\n\tone broken packet at head discarded" : "");
+    fflush(stdout);
 
     /* 1.3. pid list */
 	if(s_is_verbose){
@@ -510,6 +509,7 @@ TSR_RESULT* build_tsr_result(const char* file_path, u8* file_data, u32 file_size
 		fflush(stdout);
 	}
     result->pid_list = build_pid_list(result->ts_data, result->packet_nr, result->packet_size);
+    ts_parse( result->ts_data, result->packet_nr );
 
     /* 1.4. tables, except pmts/aits */
 
@@ -1061,6 +1061,7 @@ static u16 s_get_section_data(u16           pid,                   /* --> */
     /* search the section in pid_node */
     for(i = 0; i < (int)(pid_node->packet_nr); i ++){
 
+        // [188] [188] [188]...
         packet = get_packet_by_index(p_ts, pid_node->index[i], packet_size);
         p = (u8*)packet;
 

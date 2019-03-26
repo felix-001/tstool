@@ -1,0 +1,24 @@
+checking packet size...
+	packet size is 188
+	totally 4694 packets
+===============================
+packet index : 0
+pid : PAT
+payload_unit_start_indicator : 1
+adaptation_field_control : 1
+continuity_counter : 0
+	[ PAT ]
+		table_id : 71
+		section_length : 0
+		currnet_next_indicator : 0
+		transport_stream_id : 16
+		section_number : 128
+		last_section_number : 13
+===============================
+packet index : 1
+pid : 0x1000
+payload_unit_start_indicator : 1
+adaptation_field_control : 1
+continuity_counter : 0
+[0;31m[ ts_parse.c ts_parse() +130 ] unknow pid : 0x1000
+[0m
