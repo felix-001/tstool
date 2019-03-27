@@ -1,4 +1,4 @@
-// Last Update:2019-03-27 05:32:45
+// Last Update:2019-03-27 12:09:45
 /**
  * @file ts_parse.c
  * @brief 
@@ -14,9 +14,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "si.h"
 #include "dump.h"
 #include "ts_parse.h"
+
+#define DUMP_PES 1
+
+static inline int64_t ff_parse_pes_pts(const uint8_t *buf) {
+    return (int64_t)(*buf & 0x0e) << 29 |
+            (AV_RB16(buf+1) >> 1) << 15 |
+             AV_RB16(buf+3) >> 1;
+}
 
 static int pat_parse( u8 *ts_data, u8 payload_unit_start_indicator, ts_info_t *ts )
 {
@@ -115,12 +124,37 @@ static int pmt_parse(u8 *ts_data, u8 payload_unit_start_indicator, ts_info_t *ts
     return (ts_data - save);
 }
 
-static int pes_parse(u8 *ts_data, u16 pid, u8 payload_unit_start_indicator, ts_info_t *ts)
+static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indicator, ts_info_t *ts)
 {
     u8 *save = ts_data;
     static int pes_cnt = 0;
-    u16 pes_packet_length = 0;
+    static int audio_cnt = 0, video_cnt = 0;
+    static u16 pes_packet_length = 0;
     optional_pes_header_t *opt_pes_hdr = NULL;
+    int64_t pts = 0;
+    static int pes_first_pkt_len = 0;
+    static char *video_ptr = NULL, *video_ptr_save = NULL;
+    static char *audio_ptr = NULL, *audio_ptr_save = NULL;
+    static int pes_header_len = 0;
+
+#define VIDEO_BUF_SIZE 65536
+#define AUDIO_BUF_SIZE 65536
+
+    if ( !video_ptr ) {
+        video_ptr = (char *)malloc( VIDEO_BUF_SIZE );
+        if ( !video_ptr )
+            return -1;
+        memset( video_ptr, 0, VIDEO_BUF_SIZE);
+        video_ptr_save = video_ptr;
+    }
+
+    if ( !audio_ptr ) {
+        audio_ptr = (char *)malloc( AUDIO_BUF_SIZE );
+        if ( !audio_ptr ) 
+            return -1;
+        memset( audio_ptr, 0, AUDIO_BUF_SIZE );
+        audio_ptr_save = audio_ptr;
+    }
 
 //    DUMPBUF( ts_data, 184 );
     if ( payload_unit_start_indicator ) {
@@ -130,6 +164,34 @@ static int pes_parse(u8 *ts_data, u16 pid, u8 payload_unit_start_indicator, ts_i
             LOGE("check pes start code prefix fail\n");
             exit(0);
         }
+
+        if ( (video_ptr - video_ptr_save) > 0 ) {
+            if ( video_ptr - video_ptr_save != (pes_packet_length - (pes_header_len))) {
+                LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
+                     "video_ptr - video_ptr_save = %d\n", pes_packet_length, pes_header_len, video_ptr - video_ptr_save);
+                exit(0);
+            }
+            if ( video_ptr_save[0] != 0x00 
+                 || video_ptr_save[1] != 0x00
+                 || video_ptr_save[2] != 0x00
+                 || video_ptr_save[3] != 0x01 ) {
+                LOGE("check start code of video pes error\n");
+                exit(0);
+            }
+            PushAVData( video_ptr_save, video_ptr - video_ptr_save, 1, pts, 0, video_ptr_save[4]&0x1f == 0x05 );
+            video_ptr = video_ptr_save;
+        }
+
+        if ( (audio_ptr - audio_ptr_save) > 0 ) {
+            if ( audio_ptr - audio_ptr_save != (pes_packet_length - pes_header_len)) {
+                LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
+                     "audio_ptr - audio_ptr_save = %d\n", pes_packet_length, pes_header_len, audio_ptr - audio_ptr_save );
+                exit(0);
+            }
+            PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, pts, 0, 0 );
+            audio_ptr = audio_ptr_save;
+        }
+        
         ts_data += 3;
         printf("\t[ pes%03d ]\n", pes_cnt++ );
         printf("\t\tstream_id : 0x%x\n", *ts_data++ );
@@ -141,7 +203,48 @@ static int pes_parse(u8 *ts_data, u16 pid, u8 payload_unit_start_indicator, ts_i
         opt_pes_hdr = (optional_pes_header_t *)ts_data;
         printf("\t\tPTS_DTS_flag : %d\n", opt_pes_hdr->PTS_DTS_flag );
         printf("\t\tPES_header_data_length : %d\n", opt_pes_hdr->PES_header_data_length );
+        ts_data += sizeof(optional_pes_header_t);
+        if ( opt_pes_hdr->PTS_DTS_flag ) {
+            pts = ff_parse_pes_pts( ts_data );
+            printf("\t\tpts : %ld\n", pts );
+        }
+        ts_data += opt_pes_hdr->PES_header_data_length;
+        pes_header_len = ts_data - save -4 -2;// 4 : pkt start code prefix + stream_id 2 : pes_packet_length
+        pes_first_pkt_len = len - (ts_data - save );
+        if ( pid == ts->video_pid ) {
+            memcpy( video_ptr, ts_data, pes_first_pkt_len );
+            video_ptr += pes_first_pkt_len;
+        } else if ( pid == ts->audio_pid ) {
+            memcpy( audio_ptr, ts_data, pes_first_pkt_len );
+            audio_ptr += pes_first_pkt_len;
+        }
+    } else {
+#if DUMP_PES
+        printf("\t[ pes%03d ]\n", pes_cnt++ );
+        printf("\t\tlength : %d\n", len );
+#endif
+        if ( pid == ts->video_pid ) {
+#if DUMP_PES
+            printf("\t\tvideo count : %03d\n", video_cnt);
+            printf("\t\ttype : video(h264)\n" );
+#endif
+            memcpy( video_ptr, ts_data, len );
+            video_ptr += len;
+            video_cnt++;
+        } else if ( pid == ts->audio_pid ) {
+#if DUMP_PES
+            printf("\t\taudio count : %03d\n", audio_cnt);
+            printf("\t\ttype : audio(aac)\n" );
+#endif
+            memcpy( audio_ptr, ts_data, len );
+            audio_ptr += len;
+            audio_cnt++;
+        } else {
+            LOGE("check stream type error\n");
+            exit(0);
+        }
     }
+
     return 0;
 }
 
@@ -195,6 +298,7 @@ int ts_parse( u8 *ts_data, u32 packet_nr )
     u8        continuity_counter = 0;
     u32       ret = 0;
     static    ts_info_t *ts = NULL; 
+    u8        *save = NULL;
     
     ts = (ts_info_t *)malloc( sizeof(ts_info_t) );
     if(!ts_data || !packet_nr || !ts )
@@ -204,13 +308,21 @@ int ts_parse( u8 *ts_data, u32 packet_nr )
     
     for( i = 0; i < packet_nr; i ++){
         p = ts_data + i * 188;// every time pointer to next ts packet
+        save = p;
         //DUMPBUF( p, 188 );
         /* ts packet header : 4bytes */
         pid = ((PACKET_HEADER*)p)->pid_hi * 256 + ((PACKET_HEADER*)p)->pid_lo;
         payload_unit_start_indicator = packet_payload_unit_start_indicator(p);
         adaptation_field_control = packet_adaptation_field_control(p);
         continuity_counter = packet_continuity_counter(p);
-        show_ts_packet_header( i, pid, payload_unit_start_indicator, adaptation_field_control, continuity_counter );
+#if !DUMP_PES
+        if ( payload_unit_start_indicator || ((ts->video_pid && (ts->video_pid != pid)) 
+             && (ts->audio_pid && (ts->audio_pid != pid) ))) {
+#endif
+            show_ts_packet_header( i, pid, payload_unit_start_indicator, adaptation_field_control, continuity_counter );
+#if !DUMP_PES
+        }
+#endif
         p += 4;// ts packet header : 4bytes
         /* adaption field */
         if ( adaptation_field_control == 2 || adaptation_field_control == 3 ) {
@@ -240,7 +352,7 @@ int ts_parse( u8 *ts_data, u32 packet_nr )
                     }
                     p += ret;
                 } else if ( pid == ts->video_pid || pid == ts->audio_pid ) {
-                   ret = pes_parse( p, pid, payload_unit_start_indicator, ts );
+                   ret = pes_parse( p, 188 - (p-save), pid, payload_unit_start_indicator, ts );
                     if ( ret < 0 ) {
                         LOGE("parse pet error\n");
                         exit(0);

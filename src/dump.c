@@ -1,4 +1,4 @@
-// Last Update:2019-03-26 09:33:41
+// Last Update:2019-03-27 16:28:21
 /**
  * @file dump.c
  * @brief 
@@ -118,13 +118,6 @@ void H264ConfigHandle( unsigned char *in, unsigned char *out, int *size )
 void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestamp, int composition_time, char iskey  )
 {
 
-    char startcode[] = { 0x00, 0x00, 0x00, 0x01 };
-    int len = 0;
-    unsigned char *pbuf = buf;
-    unsigned char *pend = buf+buf_size;
-    static int config_written = 1;
-    unsigned char sps_pps[128] = { 0 };
-    int size = 0;
     char *pwd = getenv("PWD");
     char filename[128] = { 0 };
 
@@ -148,13 +141,9 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestam
 
     ASSERT( buf_size > 0 );
 
-    DUMPBUF( buf, 32 );
-    DUMPBUF( buf+buf_size-32, 32 );
+//    DUMPBUF( buf, 32 );
+//    DUMPBUF( buf+buf_size-32, 32 );
     LOGI("buf_size = %d, isvideo = %d, timestamp = %ld, iskey = %d\n", buf_size, isvideo, timestamp, iskey  );
-    if ( iskey && config_written ) {
-        H264ConfigHandle( buf, sps_pps, &size );
-    }
-
     fwrite( (char *)&isvideo, 1, 1, fp );
     if ( isvideo ) {
         LOGI("write iskey : %d\n", iskey );
@@ -163,21 +152,7 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestam
 
     fwrite( (char *)&timestamp, 1, 4, fp );
     fwrite( (char *)&composition_time, 1, 4, fp );
-    if ( isvideo ) {
-        if ( !config_written)
-            size = buf_size;
-    } else {
-        size = buf_size + 7;// adts header
-    }
-    fwrite( (char *)&size, 1, 4, fp );
-
-    if ( iskey && config_written ) {
-        fwrite( sps_pps, 1, size, fp );
-        config_written = 0;
-        return;
-    } else {
-    }
-
+    fwrite( (char *)&buf_size, 1, 4, fp );
     fwrite( buf, 1, buf_size, fp );
 }
 

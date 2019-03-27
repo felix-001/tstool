@@ -4,6 +4,7 @@
 ./src/libsi.h
 ./src/save_html.c
 ./src/tree.h
+./src/ts_parse.h
 ./src/si.c
 ./src/libsi.c
 ./src/dump.c
@@ -12,4 +13,5 @@
 ./src/put_bits.h
 ./src/save_html.h
 ./src/si.h
+./src/ts_parse.c
 ./src/tree.c
