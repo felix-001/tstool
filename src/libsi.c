@@ -636,7 +636,7 @@ int delete_tsr_result(TSR_RESULT* result){
 	if(result->file_path)
 		free(result->file_path);
     
-    delete_pid_list(result->pid_list);
+//    delete_pid_list(result->pid_list);
 
     delete_table(result->tbl_pat);
     delete_table(result->tbl_cat);

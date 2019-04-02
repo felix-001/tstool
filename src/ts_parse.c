@@ -1,4 +1,4 @@
-// Last Update:2019-03-27 12:09:45
+// Last Update:2019-04-02 15:21:38
 /**
  * @file ts_parse.c
  * @brief 
@@ -107,6 +107,8 @@ static int pmt_parse(u8 *ts_data, u8 payload_unit_start_indicator, ts_info_t *ts
             ts->video_pid = elementary_pid;
         } else if ( stream_type == 0x0f ) {
             ts->audio_pid = elementary_pid;
+        } else if ( stream_type == 0x06 ) {
+            ts->audio_pid = elementary_pid;
         } else {
             // TODO 
             // suuport more stream_type
@@ -136,6 +138,7 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
     static char *video_ptr = NULL, *video_ptr_save = NULL;
     static char *audio_ptr = NULL, *audio_ptr_save = NULL;
     static int pes_header_len = 0;
+    static int64_t last_video_pts = 0, diff = 0;
 
 #define VIDEO_BUF_SIZE 65536
 #define AUDIO_BUF_SIZE 65536
@@ -166,10 +169,12 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
         }
 
         if ( (video_ptr - video_ptr_save) > 0 ) {
-            if ( video_ptr - video_ptr_save != (pes_packet_length - (pes_header_len))) {
-                LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
-                     "video_ptr - video_ptr_save = %d\n", pes_packet_length, pes_header_len, video_ptr - video_ptr_save);
-                exit(0);
+            if ( pes_packet_length ) {
+                if ( video_ptr - video_ptr_save != (pes_packet_length - (pes_header_len))) {
+                    LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
+                         "video_ptr - video_ptr_save = %d\n", pes_packet_length, pes_header_len, video_ptr - video_ptr_save);
+                    exit(0);
+                }
             }
             if ( video_ptr_save[0] != 0x00 
                  || video_ptr_save[1] != 0x00
@@ -183,10 +188,12 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
         }
 
         if ( (audio_ptr - audio_ptr_save) > 0 ) {
-            if ( audio_ptr - audio_ptr_save != (pes_packet_length - pes_header_len)) {
-                LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
-                     "audio_ptr - audio_ptr_save = %d\n", pes_packet_length, pes_header_len, audio_ptr - audio_ptr_save );
-                exit(0);
+            if ( pes_packet_length ) {
+                if ( audio_ptr - audio_ptr_save != (pes_packet_length - pes_header_len)) {
+                    LOGE("check pes total size error, pes_packet_length = %d, pes_header_len = %d,"
+                         "audio_ptr - audio_ptr_save = %d\n", pes_packet_length, pes_header_len, audio_ptr - audio_ptr_save );
+                    exit(0);
+                }
             }
             PushAVData( audio_ptr_save, audio_ptr - audio_ptr_save, 0, pts, 0, 0 );
             audio_ptr = audio_ptr_save;
@@ -207,6 +214,11 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
         if ( opt_pes_hdr->PTS_DTS_flag ) {
             pts = ff_parse_pes_pts( ts_data );
             printf("\t\tpts : %ld\n", pts );
+            if ( pid == ts->video_pid ) {
+                diff = pts - last_video_pts;
+                printf("interval : %ld\n", diff );
+                last_video_pts = pts;
+            }
         }
         ts_data += opt_pes_hdr->PES_header_data_length;
         pes_header_len = ts_data - save -4 -2;// 4 : pkt start code prefix + stream_id 2 : pes_packet_length
