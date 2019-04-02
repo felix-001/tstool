@@ -1,4 +1,4 @@
-// Last Update:2019-04-02 15:21:38
+// Last Update:2019-04-02 16:04:31
 /**
  * @file ts_parse.c
  * @brief 
@@ -216,7 +216,7 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
             printf("\t\tpts : %ld\n", pts );
             if ( pid == ts->video_pid ) {
                 diff = pts - last_video_pts;
-                printf("interval : %ld\n", diff );
+                printf("\t\tinterval : %ld\n", diff );
                 last_video_pts = pts;
             }
         }
@@ -224,6 +224,44 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
         pes_header_len = ts_data - save -4 -2;// 4 : pkt start code prefix + stream_id 2 : pes_packet_length
         pes_first_pkt_len = len - (ts_data - save );
         if ( pid == ts->video_pid ) {
+
+            int nalu_type = ts_data[4]&0x1f;
+
+            switch( nalu_type ) {
+            case NALU_TYPE_SLICE:
+                printf("\t\tNALU_TYPE_SLICE\n");
+                break;
+            case NALU_TYPE_SEI:
+                printf("\t\tNALU_TYPE_SEI\n");
+                break;
+            case NALU_TYPE_IDR:
+                printf("\t\tNALU_TYPE_IDR\n");
+                break;
+            case NALU_TYPE_SPS:
+                printf("\t\tNALU_TYPE_SPS\n");
+                break;
+            case NALU_TYPE_PPS:
+                printf("\t\tNALU_TYPE_PPS\n");
+                break;
+            case NALU_TYPE_AUD:
+                printf("\t\t[0] NALU_TYPE_AUD\n");
+                {
+                    int i =0;
+                    uint8_t *buf = ts_data+4;
+
+                    for ( i=0; i<pes_first_pkt_len; i++ ) {
+                        if ( buf[0] == 0x00
+                             && buf[1] == 0x00
+                             && buf[2] == 0x00
+                             && buf[3] == 0x01 ) {
+                            int nalu_type = buf[4]&0x1f;
+                            printf("\t\t[1] %d\n", nalu_type );
+                        }
+                        buf++;
+                    }
+                }
+                break;
+            }
             memcpy( video_ptr, ts_data, pes_first_pkt_len );
             video_ptr += pes_first_pkt_len;
         } else if ( pid == ts->audio_pid ) {
