@@ -1,4 +1,4 @@
-// Last Update:2019-03-27 16:28:21
+// Last Update:2019-04-03 15:19:19
 /**
  * @file dump.c
  * @brief 
@@ -28,6 +28,8 @@
 #define PROFILE_LC 1
 #define SAMPLE_RATE_44100 4
 
+
+static uint8_t h264_aud[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0xF0 };
 
 static FILE *fp = NULL;
 
@@ -137,6 +139,11 @@ void PushAVData( unsigned char *buf, int buf_size, int isvideo, int64_t timestam
         } else {
             LOGI("open file success\n");
         }
+    }
+
+    if ( memcmp( h264_aud, buf, sizeof(h264_aud) ) == 0 ) {
+        buf += sizeof( h264_aud );
+        buf_size -= sizeof( h264_aud );
     }
 
     ASSERT( buf_size > 0 );

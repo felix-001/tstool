@@ -1,4 +1,4 @@
-// Last Update:2019-04-02 16:04:31
+// Last Update:2019-04-03 14:04:56
 /**
  * @file ts_parse.c
  * @brief 
@@ -138,7 +138,7 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
     static char *video_ptr = NULL, *video_ptr_save = NULL;
     static char *audio_ptr = NULL, *audio_ptr_save = NULL;
     static int pes_header_len = 0;
-    static int64_t last_video_pts = 0, diff = 0;
+    static int64_t last_video_pts = 0, diff = 0, last_audio_pts = 0;
 
 #define VIDEO_BUF_SIZE 65536
 #define AUDIO_BUF_SIZE 65536
@@ -216,8 +216,15 @@ static int pes_parse(u8 *ts_data, int len, u16 pid, u8 payload_unit_start_indica
             printf("\t\tpts : %ld\n", pts );
             if ( pid == ts->video_pid ) {
                 diff = pts - last_video_pts;
-                printf("\t\tinterval : %ld\n", diff );
+                printf("\t\tvideo interval : %ld\n", diff );
+                printf("\t\t[ video ]\n");
                 last_video_pts = pts;
+            }
+            if ( pid == ts->audio_pid ) {
+                diff = pts - last_audio_pts;
+                printf("\t\taudio interval : %ld\n", diff );
+                printf("\t\t[ audio ]\n");
+                last_audio_pts = pts;
             }
         }
         ts_data += opt_pes_hdr->PES_header_data_length;
