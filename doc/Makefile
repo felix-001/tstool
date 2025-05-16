@@ -21,7 +21,7 @@
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
 
-SHELL = /bin/bash
+SHELL = /bin/sh
 
 srcdir = .
 top_srcdir = ..
@@ -37,8 +37,8 @@ sysconfdir = ${prefix}/etc
 sharedstatedir = ${prefix}/com
 localstatedir = ${prefix}/var
 libdir = ${exec_prefix}/lib
-infodir = ${prefix}/info
-mandir = ${prefix}/man
+infodir = ${prefix}/share/info
+mandir = ${prefix}/share/man
 includedir = ${prefix}/include
 oldincludedir = /usr/include
 
@@ -50,12 +50,12 @@ pkgincludedir = $(includedir)/tstool
 
 top_builddir = ..
 
-ACLOCAL = /home/streaming-media/hls/ts/tstool-0.1.09/missing aclocal-1.4
+ACLOCAL = /Users/liyuanquan/workspace/tstool/missing aclocal-1.4
 AUTOCONF = autoconf
-AUTOMAKE = /home/streaming-media/hls/ts/tstool-0.1.09/missing automake-1.4
+AUTOMAKE = /Users/liyuanquan/workspace/tstool/missing automake-1.4
 AUTOHEADER = autoheader
 
-INSTALL = /usr/bin/install -c
+INSTALL = /opt/homebrew/bin/ginstall -c
 INSTALL_PROGRAM = ${INSTALL} $(AM_INSTALL_PROGRAM_FLAGS)
 INSTALL_DATA = ${INSTALL} -m 644
 INSTALL_SCRIPT = ${INSTALL}
@@ -68,9 +68,9 @@ NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
 host_alias = 
-host_triplet = x86_64-unknown-linux-gnu
+host_triplet = arm-apple-darwin21.2.0
 CC = gcc
-MAKEINFO = /home/streaming-media/hls/ts/tstool-0.1.09/missing makeinfo
+MAKEINFO = makeinfo
 PACKAGE = tstool
 RANLIB = ranlib
 VERSION = 0.1.09

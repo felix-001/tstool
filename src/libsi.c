@@ -74,6 +74,8 @@ static void s_parse_sect_tdt(TNODE* sect_root, TABLE *tbl_tdt, int index);
 static void s_parse_sect_tot(TNODE* sect_root, TABLE *tbl_tot, int index);
 static void s_parse_sect_rst(TNODE* sect_root, TABLE *tbl_rst, int index);
 
+int ts_parse( u8 *ts_data, u32 packet_nr );
+
 
 /* parse dvb-si descriptors loop */
 static int s_parse_descriptors_loop(u8* p, int loop_len, TNODE* root);

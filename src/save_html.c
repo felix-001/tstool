@@ -29,6 +29,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "save_html.h"
 #include "si.h"
 #include "dump.h"
